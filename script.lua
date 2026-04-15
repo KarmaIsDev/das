@@ -31,6 +31,8 @@ local waitingForBind = false
 local currentStatusLabel = "Etat: OFF | Bind: F"
 local pendingKeyInput = ""
 local isUnlocked = false
+local clickBackendName = "Unknown"
+local warnedNoClickBackend = false
 
 -- Key obfusquee (jamais en clair dans le script)
 local keySeed = 73
@@ -78,7 +80,13 @@ local function inputToName()
 end
 
 local function updateStatus()
-    currentStatusLabel = string.format("Etat: %s | Bind: %s", autoClicking and "ON" or "OFF", inputToName())
+    currentStatusLabel = string.format(
+        "Etat: %s | Bind: %s | Security: %s | Backend: %s",
+        autoClicking and "ON" or "OFF",
+        inputToName(),
+        isUnlocked and "UNLOCKED" or "LOCKED",
+        clickBackendName
+    )
     print(currentStatusLabel)
 end
 
@@ -89,8 +97,36 @@ local function isBindInput(inputObject)
     return inputObject.UserInputType == bindConfig.mouseButton
 end
 
+local function performClick()
+    if type(mouse1click) == "function" then
+        clickBackendName = "mouse1click"
+        mouse1click()
+        return true
+    end
+
+    if type(mouse1press) == "function" and type(mouse1release) == "function" then
+        clickBackendName = "mouse1press/release"
+        mouse1press()
+        task.wait()
+        mouse1release()
+        return true
+    end
+
+    if VirtualInputManager then
+        clickBackendName = "VirtualInputManager"
+        local mousePosition = UserInputService:GetMouseLocation()
+        VirtualInputManager:SendMouseButtonEvent(mousePosition.X, mousePosition.Y, 0, true, game, 0)
+        task.wait()
+        VirtualInputManager:SendMouseButtonEvent(mousePosition.X, mousePosition.Y, 0, false, game, 0)
+        return true
+    end
+
+    return false
+end
+
 MainSection:NewLabel("GUI refait avec binds clavier + souris")
 MainSection:NewLabel("Statut en temps reel dans la console")
+MainSection:NewLabel("Important: unlock la key dans l'onglet Security")
 
 MainSection:NewToggle("Activer AutoClicker", "Active ou desactive le click auto", function(state)
     if not requireUnlock() then
@@ -233,10 +269,11 @@ end)
 task.spawn(function()
     while true do
         if autoClicking and isUnlocked then
-            local mousePosition = UserInputService:GetMouseLocation()
-            VirtualInputManager:SendMouseButtonEvent(mousePosition.X, mousePosition.Y, 0, true, game, 0)
-            task.wait()
-            VirtualInputManager:SendMouseButtonEvent(mousePosition.X, mousePosition.Y, 0, false, game, 0)
+            local didClick = performClick()
+            if not didClick and not warnedNoClickBackend then
+                warnedNoClickBackend = true
+                warn("Aucun backend de clic disponible (mouse1click/mouse1press/VirtualInputManager).")
+            end
             task.wait(clickDelay)
         else
             task.wait(0.05)
