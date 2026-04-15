@@ -18,6 +18,16 @@ local toggleKey = Enum.KeyCode.F
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
+local keyMap = {
+    F = Enum.KeyCode.F,
+    G = Enum.KeyCode.G,
+    H = Enum.KeyCode.H,
+    J = Enum.KeyCode.J,
+    K = Enum.KeyCode.K,
+    L = Enum.KeyCode.L,
+    N = Enum.KeyCode.N,
+}
+
 -- AUTOCLICK FUNCTION --
 task.spawn(function()
     while true do
@@ -35,8 +45,9 @@ end)
 
 
 -- AUTOCLICKER SECTION --
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
 
     if input.KeyCode == toggleKey then
         autoClicking = not autoClicking
@@ -59,14 +70,11 @@ UI:NewKeybind("Toggle UI", "Sets the keybind to toggle UI", Enum.KeyCode.Insert,
     Library:ToggleUI()
 end)
 UI:NewTextBox("Keybind (F, G, H...)", "Change toggle key", function(txt)
-    local key = string.upper(txt)
+    txt = string.upper(txt)
 
-    local success, enumKey = pcall(function()
-        return Enum.KeyCode[key]
-    end)
-
-    if success and enumKey then
-        toggleKey = enumKey
+    if keyMap[txt] then
+        toggleKey = keyMap[txt]
+        print("Keybind set to:", txt)
     else
         warn("Invalid key")
     end
