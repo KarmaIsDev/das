@@ -1,58 +1,73 @@
--- UI LIB
+-- LOADING --
+local selectedTheme = "Sentinel"
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("FastClick Black UI", "Synapse")
+local Window = Library.CreateLib("FastClick (By stav)", selectedTheme)
 
--- TABS
-local MainTab = Window:NewTab("Main")
-local SettingsTab = Window:NewTab("Settings")
+-- TABS --
+local AutoClicker = Window:NewTab("AutoClicker")
+local Settings = Window:NewTab("Settings")
 
--- SECTIONS
-local Main = MainTab:NewSection("System")
-local Controls = SettingsTab:NewSection("Keybinds")
+-- SECTIONS --
+local Basic = AutoClicker:NewSection("Basic")
+local UI = Settings:NewSection("UI")
 
--- STATE
-local enabled = false
-local keybind = Enum.KeyCode.F
+-- VARIABLES --
+local autoClicking = false
+local clickSpeed = 0.1
+local toggleKey = Enum.KeyCode.F
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
--- TOGGLE FUNCTION
-local function toggle()
-    enabled = not enabled
-    print("State:", enabled)
-end
-
--- KEY LISTENER
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == keybind then
-        toggle()
+-- AUTOCLICK FUNCTION --
+task.spawn(function()
+    while true do
+        if autoClicking then
+            local mouseLocation = UserInputService:GetMouseLocation()
+            VirtualInputManager:SendMouseButtonEvent(mouseLocation.X, mouseLocation.Y, 0, true, game, 0)
+            task.wait()
+            VirtualInputManager:SendMouseButtonEvent(mouseLocation.X, mouseLocation.Y, 0, false, game, 0)
+            task.wait(clickSpeed)
+        else
+            task.wait(0.1)
+        end
     end
 end)
 
--- UI TOGGLE
-Main:NewToggle("Enabled", "Toggle state ON/OFF", function(v)
-    enabled = v
+
+-- AUTOCLICKER SECTION --
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+    if gp then return end
+
+    if input.KeyCode == toggleKey then
+        autoClicking = not autoClicking
+        print("AutoClicker:", autoClicking and "On" or "Off")
+    end
 end)
 
--- CHANGE KEYBIND
-Controls:NewTextBox("Set Key (F, G, H...)", "Change toggle key", function(txt)
+Basic:NewTextBox("AutoClicker Speed (s)", "Sets the speed of autoclicker", function(txt)
+    local speed = tonumber(txt)
+    if speed and speed > 0 then
+        clickSpeed = speed
+        print("Click speed set to " .. speed .. " seconds")
+    else
+        warn("Invalid speed input")
+    end
+end)
+
+-- SETTINGS SECTION --
+UI:NewKeybind("Toggle UI", "Sets the keybind to toggle UI", Enum.KeyCode.Insert, function()
+    Library:ToggleUI()
+end)
+UI:NewTextBox("Keybind (F, G, H...)", "Change toggle key", function(txt)
     local key = string.upper(txt)
+
     local success, enumKey = pcall(function()
         return Enum.KeyCode[key]
     end)
 
     if success and enumKey then
-        keybind = enumKey
-        print("Keybind set to:", key)
+        toggleKey = enumKey
     else
         warn("Invalid key")
     end
-end)
-
--- UI TOGGLE KEY
-Controls:NewKeybind("Toggle UI", "Show/Hide UI", Enum.KeyCode.Insert, function()
-    Library:ToggleUI()
-end)
--- SETTINGS SECTION --
-UI:NewKeybind("Toggle UI", "Sets the keybind to toggle UI", Enum.KeyCode.Insert, function()
-    Library:ToggleUI()
 end)
